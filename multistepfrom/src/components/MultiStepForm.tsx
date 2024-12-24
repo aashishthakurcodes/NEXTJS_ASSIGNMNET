@@ -1,163 +1,309 @@
-"use client";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useFormStore } from "@/store/formStore"; // Assuming you use Zustand
+'use client';
 
-const MultiStepForm = () => {
-  const { setPersonalInfo, setAddressDetails, setPreferences } = useFormStore();
-  const [step, setStep] = useState(0);
-  const steps = [
-    { title: "Personal Info", content: <PersonalInfo /> },
-    { title: "Address Details", content: <AddressDetails /> },
-    { title: "Preferences", content: <Preferences /> },
-    { title: "Review & Submit", content: <ReviewSubmit /> },
-  ];
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { ToastContainer, toast } from 'react-toastify';
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch("/api/formState");
-        const data = await res.json();
-        
-        // Update the form state with the fetched data
-        setPersonalInfo(data.personalInfo);
-        setAddressDetails(data.addressDetails);
-        setPreferences(data.preferences);
-      } catch (error) {
-        console.error("Error fetching mock API data", error);
-      }
-    }, 5000); // Fetch every 5 seconds
-    
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, [setPersonalInfo, setAddressDetails, setPreferences]);
+// Define the Zod schema for validation
+const FormDataSchema = z.object({
+  firstName: z.string().nonempty('First Name is required'),
+  lastName: z.string().nonempty('Last Name is required'),
+  email: z.string().email('Invalid email').nonempty('Email is required'),
+  country: z.string().nonempty('Country is required'),
+  state: z.string().nonempty('State is required'),
+  city: z.string().nonempty('City is required'),
+  street: z.string().nonempty('Street is required'),
+  subscribeToNewsletter: z.boolean().optional(),
+  enableNotifications: z.boolean().optional(),
+});
 
-  const nextStep = () => {
-    if (step < steps.length - 1) setStep(step + 1);
+type Inputs = z.infer<typeof FormDataSchema>;
+
+// Steps configuration
+const steps = [
+  { id: 'Step 1', name: 'Personal Information', fields: ['firstName', 'lastName', 'email'] },
+  { id: 'Step 2', name: 'Address', fields: ['country', 'state', 'city', 'street'] },
+  { id: 'Step 3', name: 'Preferences', fields: ['subscribeToNewsletter', 'enableNotifications'] },
+  { id: 'Step 4', name: 'Review & Submit' },
+];
+
+export default function MultiStepForm() {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [previousStep, setPreviousStep] = useState(0);
+  const delta = currentStep - previousStep;
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formData, setFormData] = useState<Inputs | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    trigger,
+    reset,
+    formState: { errors },
+  } = useForm<Inputs>({
+    resolver: zodResolver(FormDataSchema),
+  });
+
+  // Submit the form and store data in localStorage
+  const processForm: SubmitHandler<Inputs> = (data) => {
+    console.log('Form Submitted:', data);
+
+    // Store the form data in localStorage
+    try {
+      localStorage.setItem('formData', JSON.stringify(data));
+      console.log('Data saved to localStorage');
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+
+    // Set form data and trigger acknowledgment modal
+    setFormData(data);
+    setFormSubmitted(true);
   };
 
-  const prevStep = () => {
-    if (step > 0) setStep(step - 1);
+  const next = async () => {
+    const fields = steps[currentStep].fields;
+
+    const isValid = fields ? await trigger(fields as (keyof Inputs)[], { shouldFocus: true }) : true;
+
+    if (!isValid) return;
+
+    if (currentStep < steps.length - 1) {
+      setPreviousStep(currentStep);
+      setCurrentStep((step) => step + 1);
+    }
   };
+
+  const prev = () => {
+    if (currentStep > 0) {
+      setPreviousStep(currentStep);
+      setCurrentStep((step) => step - 1);
+    }
+  };
+
+  // Close the acknowledgment modal and reset form
+  const closeModal = () => {
+    setFormSubmitted(false);  // Close the modal
+    reset();  // Reset the form data
+    setCurrentStep(0);  // Go back to Step 1
+  };
+
+  // Reset the form and go back to Step 1
+  const resetForm = () => {
+    reset();  // Reset the form data
+    setCurrentStep(0);  // Go back to Step 1
+    setFormData(null);  // Clear any form data stored for review
+    setFormSubmitted(false);  // Close any submitted modal if open
+  };
+  const notify = () => toast("Form Submitted successfully");
 
   return (
-    <div className="container mx-auto p-4">
-      <Tabs value={`step${step + 1}`} defaultValue="step1">
-        <TabsList>
-          {steps.map((_, index) => (
-            <TabsTrigger key={index} value={`step${index + 1}`}>
-              Step {index + 1}: {steps[index].title}
-            </TabsTrigger>
+    <section className="absolute inset-0 mt-20 flex flex-col justify-between p-8 max-w-3xl mx-auto">
+      {/* Steps Navigation */}
+      <nav aria-label="Progress">
+        <ol role="list" className="space-y-4 md:flex md:space-x-8 md:space-y-0">
+          {steps.map((step, index) => (
+            <li key={step.name} className="md:flex-1">
+              {currentStep > index ? (
+                <div className="group flex w-full flex-col border-l-4 border-sky-600 py-2 pl-4 md:border-l-0 md:border-t-4">
+                  <span className="text-sm font-medium text-sky-600">{step.id}</span>
+                  <span className="text-sm font-medium">{step.name}</span>
+                </div>
+              ) : currentStep === index ? (
+                <div
+                  className="flex w-full flex-col border-l-4 border-sky-600 py-2 pl-4 md:border-l-0 md:border-t-4"
+                  aria-current="step"
+                >
+                  <span className="text-sm font-medium text-sky-600">{step.id}</span>
+                  <span className="text-sm font-medium">{step.name}</span>
+                </div>
+              ) : (
+                <div className="group flex w-full flex-col border-l-4 border-gray-200 py-2 pl-4 md:border-l-0 md:border-t-4">
+                  <span className="text-sm font-medium text-gray-500">{step.id}</span>
+                  <span className="text-sm font-medium">{step.name}</span>
+                </div>
+              )}
+            </li>
           ))}
-        </TabsList>
+        </ol>
+      </nav>
 
-        <div className="py-4">
-          {/* Form Step Content */}
+      {/* Form */}
+      <form className="mt-8" onSubmit={handleSubmit(processForm)}>
+        {/* Step 1: Personal Information */}
+        {currentStep === 0 && (
           <motion.div
-            key={step} // Trigger animation on step change
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ x: delta >= 0 ? '50%' : '-50%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="space-y-3"
           >
-            {steps[step].content}
+            <h2 className="text-2xl font-semibold">Personal Information</h2>
+            <input
+              {...register('firstName')}
+              placeholder="First Name"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
+
+            <input
+              {...register('lastName')}
+              placeholder="Last Name"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
+
+            <input
+              {...register('email')}
+              placeholder="Email"
+              type="email"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </motion.div>
-        </div>
+        )}
 
-        {/* Step navigation buttons */}
-        <div className="flex justify-between py-4">
-          {step > 0 && (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={prevStep}
-              className="px-4 py-2 rounded-md bg-gray-300 hover:bg-gray-400"
-            >
-              Prev
-            </motion.button>
-          )}
+        {/* Step 2: Address */}
+        {currentStep === 1 && (
+          <motion.div
+            initial={{ x: delta >= 0 ? '50%' : '-50%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="space-y-3"
+          >
+            <h2 className="text-2xl font-semibold">Address</h2>
+            <input
+              {...register('country')}
+              placeholder="Country"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.country && <p className="text-red-500 text-sm">{errors.country.message}</p>}
 
-          {step < steps.length - 1 ? (
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={nextStep}
-              className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+            <input
+              {...register('state')}
+              placeholder="State"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.state && <p className="text-red-500 text-sm">{errors.state.message}</p>}
+
+            <input
+              {...register('city')}
+              placeholder="City"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.city && <p className="text-red-500 text-sm">{errors.city.message}</p>}
+
+            <input
+              {...register('street')}
+              placeholder="Street"
+              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.street && <p className="text-red-500 text-sm">{errors.street.message}</p>}
+          </motion.div>
+        )}
+
+        {/* Step 3: Preferences */}
+        {currentStep === 2 && (
+          <motion.div
+            initial={{ x: delta >= 0 ? '50%' : '-50%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="space-y-3"
+          >
+            <h2 className="text-2xl font-semibold">Preferences</h2>
+            <label>
+              <input
+                type="checkbox"
+                {...register('subscribeToNewsletter')}
+                className="mr-2"
+              />
+              Subscribe to Newsletter
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                {...register('enableNotifications')}
+                className="mr-2"
+              />
+              Enable Notifications
+            </label>
+          </motion.div>
+        )}
+
+        {/* Step 4: Review & Submit */}
+        {currentStep === 3 && (
+          <motion.div
+            initial={{ x: delta >= 0 ? '50%' : '-50%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="space-y-3"
+          >
+            <h2 className="text-2xl font-semibold">Review & Submit</h2>
+            <pre className='bg-gray-200 text-black rounded-md'>{JSON.stringify(formData, null, 2)}</pre>
+          </motion.div>
+        )}
+
+<ToastContainer />
+        {/* Navigation Buttons */}
+        <div className="mt-4 flex justify-between">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={currentStep === 0}
+            className="bg-gray-500 text-white px-6 py-2 rounded-md"
+          >
+            Back
+          </button>
+          {currentStep < steps.length - 1 ? (
+            <button
+              type="button"
+              onClick={next}
+              className="bg-blue-500 text-white px-6 py-2 rounded-md"
             >
               Next
-            </motion.button>
+            </button>
           ) : (
             <button
-              className="px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600"
-              // Add form submission logic here
-            >
+              type="submit"
+              className="bg-green-500 text-white px-6 py-2 rounded-md"
+              
+              onClick={notify}>
+            
               Submit
             </button>
           )}
         </div>
+      </form>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 h-2 rounded-full mt-4">
-          <div
-            className="bg-blue-500 h-2 rounded-full"
-            style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-          />
+      {/* Acknowledgment Modal */}
+      {/* {formSubmitted && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <h3 className="text-lg font-semibold">Form Submitted Successfully!</h3>
+            <pre>{JSON.stringify(formData, null, 2)}</pre>
+            <button
+              onClick={closeModal}  // Close and reset form
+              className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-md"
+            >
+              Close
+            </button>
+          </div>
         </div>
-      </Tabs>
-    </div>
+      )} */}
+
+      {/* Reset Button */}
+      <button
+        type="button"
+        onClick={resetForm}
+        className="mt-4 bg-red-500 text-white px-6 py-2 rounded-md"
+      >
+        Reset
+      </button>
+    </section>
   );
-};
-
-// Sample Step Components (Personal Info, Address, Preferences, etc.)
-const PersonalInfo = () => (
-  <div>
-    <h2>Personal Information</h2>
-    <form>
-      <label>
-        Name:
-        <input type="text" name="name" className="input" />
-      </label>
-      <label>
-        Email:
-        <input type="email" name="email" className="input" />
-      </label>
-    </form>
-  </div>
-);
-
-const AddressDetails = () => (
-  <div>
-    <h2>Address Details</h2>
-    <form>
-      <label>
-        Address:
-        <input type="text" name="address" className="input" />
-      </label>
-      <label>
-        City:
-        <input type="text" name="city" className="input" />
-      </label>
-    </form>
-  </div>
-);
-
-const Preferences = () => (
-  <div>
-    <h2>Preferences</h2>
-    <form>
-      <label>
-        Subscribe to newsletter:
-        <input type="checkbox" name="newsletter" className="input" />
-      </label>
-    </form>
-  </div>
-);
-
-const ReviewSubmit = () => (
-  <div>
-    <h2>Review & Submit</h2>
-    <button className="bg-green-500 text-white px-4 py-2 rounded-md">Submit</button>
-  </div>
-);
-
-export default MultiStepForm;
+}
