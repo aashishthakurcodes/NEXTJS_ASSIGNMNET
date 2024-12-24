@@ -34,7 +34,7 @@ export default function MultiStepForm() {
   const [currentStep, setCurrentStep] = useState(0);
   const [previousStep, setPreviousStep] = useState(0);
   const delta = currentStep - previousStep;
-  const [formSubmitted, setFormSubmitted] = useState(false);
+  // const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState<Inputs | null>(null);
 
   const {
@@ -62,7 +62,7 @@ export default function MultiStepForm() {
 
     // Set form data and trigger acknowledgment modal
     setFormData(data);
-    setFormSubmitted(true);
+    // setFormSubmitted(true);
   };
 
   const next = async () => {
@@ -91,7 +91,7 @@ export default function MultiStepForm() {
     reset();  // Reset the form data
     setCurrentStep(0);  // Go back to Step 1
     setFormData(null);  // Clear any form data stored for review
-    setFormSubmitted(false);
+    // setFormSubmitted(false);
     toast.success("Form Reset successfully")  // Close any submitted modal if open
   };
   const notify = () => toast("Form Submitted successfully");
