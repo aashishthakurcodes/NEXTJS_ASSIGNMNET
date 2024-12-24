@@ -40,7 +40,7 @@ export default function MultiStepForm() {
   const {
     register,
     handleSubmit,
-    watch,
+    
     trigger,
     reset,
     formState: { errors },
@@ -85,12 +85,6 @@ export default function MultiStepForm() {
     }
   };
 
-  // Close the acknowledgment modal and reset form
-  const closeModal = () => {
-    setFormSubmitted(false);  // Close the modal
-    reset();  // Reset the form data
-    setCurrentStep(0);  // Go back to Step 1
-  };
 
   // Reset the form and go back to Step 1
   const resetForm = () => {
@@ -281,21 +275,7 @@ export default function MultiStepForm() {
         </div>
       </form>
 
-      {/* Acknowledgment Modal */}
-      {/* {formSubmitted && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h3 className="text-lg font-semibold">Form Submitted Successfully!</h3>
-            <pre>{JSON.stringify(formData, null, 2)}</pre>
-            <button
-              onClick={closeModal}  // Close and reset form
-              className="mt-4 bg-blue-500 text-white px-6 py-2 rounded-md"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )} */}
+   
 
       {/* Reset Button */}
       <button
