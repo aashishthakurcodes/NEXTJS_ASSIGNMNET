@@ -97,7 +97,8 @@ export default function MultiStepForm() {
     reset();  // Reset the form data
     setCurrentStep(0);  // Go back to Step 1
     setFormData(null);  // Clear any form data stored for review
-    setFormSubmitted(false);  // Close any submitted modal if open
+    setFormSubmitted(false);
+    toast.success("Form Reset successfully")  // Close any submitted modal if open
   };
   const notify = () => toast("Form Submitted successfully");
 
@@ -146,14 +147,14 @@ export default function MultiStepForm() {
             <input
               {...register('firstName')}
               placeholder="First Name"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.firstName && <p className="text-red-500 text-sm">{errors.firstName.message}</p>}
 
             <input
               {...register('lastName')}
               placeholder="Last Name"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.lastName && <p className="text-red-500 text-sm">{errors.lastName.message}</p>}
 
@@ -161,7 +162,7 @@ export default function MultiStepForm() {
               {...register('email')}
               placeholder="Email"
               type="email"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           </motion.div>
@@ -179,28 +180,28 @@ export default function MultiStepForm() {
             <input
               {...register('country')}
               placeholder="Country"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.country && <p className="text-red-500 text-sm">{errors.country.message}</p>}
 
             <input
               {...register('state')}
               placeholder="State"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.state && <p className="text-red-500 text-sm">{errors.state.message}</p>}
 
             <input
               {...register('city')}
               placeholder="City"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.city && <p className="text-red-500 text-sm">{errors.city.message}</p>}
 
             <input
               {...register('street')}
               placeholder="Street"
-              className="w-full p-3 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.street && <p className="text-red-500 text-sm">{errors.street.message}</p>}
           </motion.div>
@@ -219,12 +220,12 @@ export default function MultiStepForm() {
               <input
                 type="checkbox"
                 {...register('subscribeToNewsletter')}
-                className="mr-2"
+                className="mr-3"
               />
               Subscribe to Newsletter
             </label>
 
-            <label>
+            <label className='ml-3'>
               <input
                 type="checkbox"
                 {...register('enableNotifications')}
